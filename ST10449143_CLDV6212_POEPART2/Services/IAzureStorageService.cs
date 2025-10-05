@@ -1,4 +1,5 @@
-﻿// Services/IAzureStorageService.cs
+﻿/*
+// Services/IAzureStorageService.cs
 using ST10449143_CLDV6212_POEPART1.Models;
 using Azure.Data.Tables;
 
@@ -27,3 +28,4 @@ namespace ST10449143_CLDV6212_POEPART1.Services
         Task<byte[]> DownloadFromFileShareAsync(string shareName, string fileName, string directoryName = "");
     }
 }
+*/

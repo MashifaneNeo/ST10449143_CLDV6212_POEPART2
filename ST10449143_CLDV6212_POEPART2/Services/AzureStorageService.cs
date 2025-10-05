@@ -1,4 +1,5 @@
-﻿// Services/AzureStorageService.cs
+﻿/*
+// Services/AzureStorageService.cs
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
@@ -268,3 +269,4 @@ namespace ST10449143_CLDV6212_POEPART1.Services
 
     }
 }
+*/
