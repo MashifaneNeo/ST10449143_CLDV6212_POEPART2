@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
-namespace ST10449143_CLDV6212_POEPART1.Functions;
+namespace ST10449143_CLDV6212_POEPART2.Functions;
 
 public class Function1
 {
