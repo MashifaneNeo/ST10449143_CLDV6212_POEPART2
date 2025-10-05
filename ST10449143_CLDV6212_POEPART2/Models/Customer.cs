@@ -1,31 +1,11 @@
-﻿// Models/Customer.cs
-using Azure;
-using Azure.Data.Tables;
-using System.ComponentModel.DataAnnotations;
-using System.Runtime.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ST10449143_CLDV6212_POEPART1.Models
 {
-    public class Customer : ITableEntity
+    public class Customer
     {
-        public string PartitionKey { get; set; } = "Customer";
-
-        public string RowKey { get; set; } = Guid.NewGuid().ToString();
-
-        public DateTimeOffset? Timestamp { get; set; }
-
-        [IgnoreDataMember] // prevents direct serialization
-        public ETag ETag { get; set; }
-
-        [Display(Name = "ETag")]
-        public string ETagValue
-        {
-            get => ETag.ToString();
-            set => ETag = string.IsNullOrEmpty(value) ? default : new ETag(value);
-        }
-
         [Display(Name = "Customer ID")]
-        public string CustomerId => RowKey;
+        public string Id { get; set; } = string.Empty;
 
         [Required]
         [Display(Name = "First Name")]

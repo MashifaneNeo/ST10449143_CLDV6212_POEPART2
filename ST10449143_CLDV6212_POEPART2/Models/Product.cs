@@ -1,18 +1,11 @@
-﻿using Azure;
-using Azure.Data.Tables;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ST10449143_CLDV6212_POEPART1.Models
 {
-    public class Product : ITableEntity
+    public class Product
     {
-        public string PartitionKey { get; set; } = "Product";
-        public string RowKey { get; set; } = Guid.NewGuid().ToString();
-        public DateTimeOffset? Timestamp { get; set; }
-        public ETag ETag { get; set; }
-
         [Display(Name = "Product ID")]
-        public string ProductId => RowKey;
+        public string Id { get; set; } = string.Empty;
 
         [Required]
         [Display(Name = "Product Name")]
@@ -25,7 +18,7 @@ namespace ST10449143_CLDV6212_POEPART1.Models
         [Required(ErrorMessage = "Price is required")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero.")]
         [Display(Name = "Price")]
-        public double Price { get; set; } // double instead of decimal for Table Storage
+        public double Price { get; set; }
 
         [Required]
         [Display(Name = "Stock Available")]

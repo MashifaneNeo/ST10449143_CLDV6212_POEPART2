@@ -1,18 +1,11 @@
-﻿using Azure;
-using Azure.Data.Tables;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ST10449143_CLDV6212_POEPART1.Models
 {
-    public class Order : ITableEntity
+    public class Order
     {
-        public string PartitionKey { get; set; } = "Order";
-        public string RowKey { get; set; } = Guid.NewGuid().ToString();
-        public DateTimeOffset? Timestamp { get; set; }
-        public ETag ETag { get; set; }
-
         [Display(Name = "Order ID")]
-        public string OrderId => RowKey;
+        public string Id { get; set; } = string.Empty;
 
         [Required]
         [Display(Name = "Customer")]
@@ -49,13 +42,5 @@ namespace ST10449143_CLDV6212_POEPART1.Models
         [Required]
         [Display(Name = "Status")]
         public string Status { get; set; } = "Submitted";
-    }
-
-    public enum OrderStatus
-    {
-        Submitted,
-        Processing,
-        Completed,
-        Cancelled
     }
 }
