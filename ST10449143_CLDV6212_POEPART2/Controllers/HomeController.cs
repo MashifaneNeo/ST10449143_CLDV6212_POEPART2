@@ -1,35 +1,54 @@
-// Controllers/HomeController.cs
+using Microsoft.AspNetCore.Mvc;
 using ST10449143_CLDV6212_POEPART1.Models;
 using ST10449143_CLDV6212_POEPART1.Models.ViewModels;
 using ST10449143_CLDV6212_POEPART1.Services;
-using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
 namespace ST10449143_CLDV6212_POEPART1.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly IAzureStorageService _storageService;
+        private readonly IFunctionsApi _api;
+        private readonly ILogger<HomeController> _logger;
 
-        public HomeController(IAzureStorageService storageService)
+        public HomeController(IFunctionsApi api, ILogger<HomeController> logger)
         {
-            _storageService = storageService;
+            _api = api;
+            _logger = logger;
         }
+
         public async Task<IActionResult> Index()
         {
-            var products = await _storageService.GetAllEntitiesAsync<Product>();
-            var customers = await _storageService.GetAllEntitiesAsync<Customer>();
-            var orders = await _storageService.GetAllEntitiesAsync<Order>();
-
-            var viewModel = new HomeViewModel
+            try
             {
-                FeaturedProducts = products.Take(5).ToList(),
-                ProductCount = products.Count,
-                CustomerCount = customers.Count,
-                OrderCount = orders.Count
-            };
-            return View(viewModel);
+                var productsTask = _api.GetProductsAsync();
+                var customersTask = _api.GetCustomersAsync();
+                var ordersTask = _api.GetOrdersAsync();
+
+                await Task.WhenAll(productsTask, customersTask, ordersTask);
+
+                var products = productsTask.Result ?? new List<Product>();
+                var customers = customersTask.Result ?? new List<Customer>();
+                var orders = ordersTask.Result ?? new List<Order>();
+
+                var vm = new HomeViewModel
+                {
+                    FeaturedProducts = products.Take(5).ToList(),
+                    ProductCount = products.Count,
+                    CustomerCount = customers.Count,
+                    OrderCount = orders.Count
+                };
+
+                return View(vm);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load dashboard data from Functions API.");
+                TempData["Error"] = "Could not load dashboard data. Please try again.";
+                return View(new HomeViewModel());
+            }
         }
+
         public IActionResult Privacy()
         {
             return View();
@@ -40,22 +59,6 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
             return View();
         }
 
-        [HttpPost]
-        public async Task<IActionResult> InitializeStorage()
-        {
-            try
-            {
-                // Force re-initialization of the storage service
-                await _storageService.GetAllEntitiesAsync<Customer>(); // This will trigger the creation of the container if it doesn't exist
-                TempData["Success"] = "Azure Storage initialized successfully!.";
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = $"Failed to initializing Storage: {ex.Message}";
-            }
-            return RedirectToAction(nameof(Index));
-        }
-
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
@@ -63,8 +66,3 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
         }
     }
 }
-
-
-       
-
-        

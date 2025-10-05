@@ -1,34 +1,39 @@
-﻿// Controllers/OrderController.cs
-using Azure;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using ST10449143_CLDV6212_POEPART1.Models;
 using ST10449143_CLDV6212_POEPART1.Models.ViewModels;
 using ST10449143_CLDV6212_POEPART1.Services;
-using System.Text.Json;
 
 namespace ST10449143_CLDV6212_POEPART1.Controllers
 {
     public class OrderController : Controller
     {
-        private readonly IAzureStorageService _storageService;
+        private readonly IFunctionsApi _api;
 
-        public OrderController(IAzureStorageService storageService)
+        public OrderController(IFunctionsApi api)
         {
-            _storageService = storageService;
+            _api = api;
         }
 
-        // GET: OrderController
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            var orders = await _storageService.GetAllEntitiesAsync<Order>();
+            var orders = await _api.GetOrdersAsync();
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                orders = orders.Where(o =>
+                    o.CustomerId.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                    o.ProductName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                    o.Status.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+                ).ToList();
+            }
+
             return View(orders);
         }
 
-        // GET: OrderController/Create
         public async Task<IActionResult> Create()
         {
-            var customers = await _storageService.GetAllEntitiesAsync<Customer>();
-            var products = await _storageService.GetAllEntitiesAsync<Product>();
+            var customers = await _api.GetCustomersAsync();
+            var products = await _api.GetProductsAsync();
 
             var viewModel = new OrderCreateViewModel
             {
@@ -38,7 +43,6 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
             return View(viewModel);
         }
 
-        // POST: OrderController/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(OrderCreateViewModel model)
@@ -47,70 +51,7 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
             {
                 try
                 {
-                    var customer = await _storageService.GetEntityAsync<Customer>("Customer", model.CustomerId);
-                    var product = await _storageService.GetEntityAsync<Product>("Product", model.ProductId);
-
-                    if (customer == null || product == null)
-                    {
-                        ModelState.AddModelError("", "Invalid customer or product selected.");
-                        await PopulateDropdowns(model);
-                        return View(model);
-                    }
-
-                    if (product.StockAvailable < model.Quantity)
-                    {
-                        ModelState.AddModelError("Quantity", $"Insufficient stock. Available: {product.StockAvailable}");
-                        await PopulateDropdowns(model);
-                        return View(model);
-                    }
-
-                    // Ensure OrderDate is UTC
-                    var orderDateUtc = DateTime.SpecifyKind(model.OrderDate, DateTimeKind.Utc);
-
-                    var order = new Order
-                    {
-                        CustomerId = model.CustomerId,
-                        Username = customer.Username,
-                        ProductId = model.ProductId,
-                        ProductName = product.ProductName,
-                        OrderDate = orderDateUtc, // <-- UTC
-                        Quantity = model.Quantity,
-                        UnitPrice = product.Price,
-                        TotalPrice = product.Price * model.Quantity,
-                        Status = "Submitted"
-                    };
-
-                    await _storageService.AddEntityAsync(order);
-
-                    product.StockAvailable -= model.Quantity;
-                    await _storageService.UpdateEntityAsync(product);
-
-                    var orderMessage = new
-                    {
-                        OrderId = order.OrderId,
-                        CustomerId = order.CustomerId,
-                        CustomerName = customer.Name + " " + customer.Surname,
-                        ProductName = product.ProductName,
-                        Quantity = order.Quantity,
-                        TotalPrice = order.TotalPrice,
-                        OrderDate = order.OrderDate, // UTC
-                        Status = order.Status
-                    };
-
-                    await _storageService.SendMessageAsync("order-notifications", JsonSerializer.Serialize(orderMessage));
-
-                    var stockMessage = new
-                    {
-                        ProductId = product.ProductId,
-                        ProductName = product.ProductName,
-                        PreviousStock = product.StockAvailable + model.Quantity,
-                        NewStock = product.StockAvailable,
-                        UpdatedBy = "Order System",
-                        UpdateDate = DateTime.UtcNow
-                    };
-
-                    await _storageService.SendMessageAsync("stock-updates", JsonSerializer.Serialize(stockMessage));
-
+                    var order = await _api.CreateOrderAsync(model.CustomerId, model.ProductId, model.Quantity);
                     TempData["Success"] = "Order created successfully!";
                     return RedirectToAction(nameof(Index));
                 }
@@ -124,8 +65,6 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
             return View(model);
         }
 
-
-        // GET: OrderController/Details/5
         public async Task<IActionResult> Details(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -133,7 +72,7 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
                 return NotFound();
             }
 
-            var order = await _storageService.GetEntityAsync<Order>("Order", id);
+            var order = await _api.GetOrderAsync(id);
             if (order == null)
             {
                 return NotFound();
@@ -142,7 +81,6 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
             return View(order);
         }
 
-        // GET: OrderController/Edit/5
         public async Task<IActionResult> Edit(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -150,7 +88,7 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
                 return NotFound();
             }
 
-            var order = await _storageService.GetEntityAsync<Order>("Order", id);
+            var order = await _api.GetOrderAsync(id);
             if (order == null)
             {
                 return NotFound();
@@ -159,22 +97,15 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
             return View(order);
         }
 
-        // POST: OrderController/Edit/5
         [HttpPost]
-        [ValidateAntiForgeryToken]        
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Order order)
         {
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // Convert ETag string back to ETag type
-                    order.ETag = new ETag(order.ETag.ToString());
-
-                    // Ensure OrderDate is UTC
-                    order.OrderDate = DateTime.SpecifyKind(order.OrderDate, DateTimeKind.Utc);
-
-                    await _storageService.UpdateEntityAsync(order);
+                    await _api.UpdateOrderStatusAsync(order.Id, order.Status);
                     TempData["Success"] = "Order updated successfully!";
                     return RedirectToAction(nameof(Index));
                 }
@@ -191,7 +122,7 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
         {
             try
             {
-                await _storageService.DeleteEntityAsync<Order>("Order", id);
+                await _api.DeleteOrderAsync(id);
                 TempData["Success"] = "Order deleted successfully!";
             }
             catch (Exception ex)
@@ -206,7 +137,7 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
         {
             try
             {
-                var product = await _storageService.GetEntityAsync<Product>("Product", productId);
+                var product = await _api.GetProductAsync(productId);
                 if (product != null)
                 {
                     return Json(new
@@ -225,35 +156,12 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
             }
         }
 
-      
         [HttpPost]
         public async Task<IActionResult> UpdateOrderStatus(string id, string newStatus)
         {
             try
             {
-                var order = await _storageService.GetEntityAsync<Order>("Order", id);
-                if (order == null)
-                {
-                    return Json(new { success = false, message = "Order not found" });
-                }
-                var previousStatus = order.Status;
-                order.Status = newStatus;
-                await _storageService.UpdateEntityAsync(order);
-
-                // Send queue message for status update
-                var statusMessage = new
-                {
-                    OrderId = order.OrderId, 
-                    CustomerId = order.CustomerId,
-                    CustomerName = order.Username,
-                    ProductName = order.ProductName,
-                    PreviousStatus = previousStatus,
-                    NewStatus = newStatus,
-                    UpdatedDate = DateTime.UtcNow,
-                    UpdatedBy = "System"
-                };
-                await _storageService.SendMessageAsync("order-notifications", JsonSerializer.Serialize(statusMessage));
-
+                await _api.UpdateOrderStatusAsync(id, newStatus);
                 return Json(new { success = true, message = $"Order status updated to {newStatus}" });
             }
             catch (Exception ex)
@@ -264,8 +172,8 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
 
         private async Task PopulateDropdowns(OrderCreateViewModel model)
         {
-            model.Customers = await _storageService.GetAllEntitiesAsync<Customer>();
-            model.Products = await _storageService.GetAllEntitiesAsync<Product>();
+            model.Customers = await _api.GetCustomersAsync();
+            model.Products = await _api.GetProductsAsync();
         }
     }
 }

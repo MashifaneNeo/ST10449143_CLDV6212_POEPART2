@@ -6,22 +6,34 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
 {
     public class ProductController : Controller
     {
-        private readonly IAzureStorageService _storageService;
+        private readonly IFunctionsApi _api;
         private readonly ILogger<ProductController> _logger;
 
-        public ProductController(IAzureStorageService storageService, ILogger<ProductController> logger)
+        public ProductController(IFunctionsApi api, ILogger<ProductController> logger)
         {
-            _storageService = storageService;
+            _api = api;
             _logger = logger;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            var products = await _storageService.GetAllEntitiesAsync<Product>();
+            var products = await _api.GetProductsAsync();
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                products = products.Where(p =>
+                    p.ProductName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                    p.Description.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+                ).ToList();
+            }
+
             return View(products);
         }
 
-        public IActionResult Create() => View();
+        public IActionResult Create()
+        {
+            return View();
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -37,13 +49,8 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
                         return View(product);
                     }
 
-                    if (imageFile != null && imageFile.Length > 0)
-                    {
-                        product.ImageUrl = await _storageService.UploadImageAsync(imageFile, "product-images");
-                    }
-
-                    await _storageService.AddEntityAsync(product);
-                    TempData["Success"] = $"Product '{product.ProductName}' created successfully with price {product.Price:C}!";
+                    var saved = await _api.CreateProductAsync(product, imageFile);
+                    TempData["Success"] = $"Product '{saved.ProductName}' created successfully with price {saved.Price:C}!";
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
@@ -55,13 +62,12 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
             return View(product);
         }
 
-        // GET: Product/Edit
-        public async Task<IActionResult> Edit(string partitionKey, string rowKey)
+        public async Task<IActionResult> Edit(string id)
         {
-            if (string.IsNullOrEmpty(partitionKey) || string.IsNullOrEmpty(rowKey))
+            if (string.IsNullOrEmpty(id))
                 return NotFound();
 
-            var product = await _storageService.GetEntityAsync<Product>(partitionKey, rowKey);
+            var product = await _api.GetProductAsync(id);
             if (product == null)
                 return NotFound();
 
@@ -76,20 +82,7 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
             {
                 try
                 {
-                    var originalProduct = await _storageService.GetEntityAsync<Product>(product.PartitionKey, product.RowKey);
-                    if (originalProduct == null) return NotFound();
-
-                    originalProduct.ProductName = product.ProductName;
-                    originalProduct.Description = product.Description;
-                    originalProduct.Price = product.Price;
-                    originalProduct.StockAvailable = product.StockAvailable;
-
-                    if (imageFile != null && imageFile.Length > 0)
-                    {
-                        originalProduct.ImageUrl = await _storageService.UploadImageAsync(imageFile, "product-images");
-                    }
-
-                    await _storageService.UpdateEntityAsync(originalProduct);
+                    var updated = await _api.UpdateProductAsync(product.Id, product, imageFile);
                     TempData["Success"] = "Product updated successfully!";
                     return RedirectToAction(nameof(Index));
                 }
@@ -102,13 +95,12 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
             return View(product);
         }
 
-        // GET: Product/Details
-        public async Task<IActionResult> Details(string partitionKey, string rowKey)
+        public async Task<IActionResult> Details(string id)
         {
-            if (string.IsNullOrEmpty(partitionKey) || string.IsNullOrEmpty(rowKey))
+            if (string.IsNullOrEmpty(id))
                 return NotFound();
 
-            var product = await _storageService.GetEntityAsync<Product>(partitionKey, rowKey);
+            var product = await _api.GetProductAsync(id);
             if (product == null)
                 return NotFound();
 
@@ -116,11 +108,11 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Delete(string partitionKey, string rowKey)
+        public async Task<IActionResult> Delete(string id)
         {
             try
             {
-                await _storageService.DeleteEntityAsync<Product>(partitionKey, rowKey);
+                await _api.DeleteProductAsync(id);
                 TempData["Success"] = "Product deleted successfully!";
             }
             catch (Exception ex)

@@ -1,5 +1,4 @@
-﻿// Controllers/UploadController.cs
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using ST10449143_CLDV6212_POEPART1.Models;
 using ST10449143_CLDV6212_POEPART1.Services;
 
@@ -7,11 +6,11 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
 {
     public class UploadController : Controller
     {
-        private readonly IAzureStorageService _storageService;
+        private readonly IFunctionsApi _api;
 
-        public UploadController(IAzureStorageService storageService)
+        public UploadController(IFunctionsApi api)
         {
-            _storageService = storageService;
+            _api = api;
         }
 
         public IActionResult Index()
@@ -29,14 +28,13 @@ namespace ST10449143_CLDV6212_POEPART1.Controllers
                 {
                     if (model.ProofOfPayment != null && model.ProofOfPayment.Length > 0)
                     {
-                        // Upload to blob storage
-                        var fileName = await _storageService.UploadFileAsync(model.ProofOfPayment, "payment-proofs");
-
-                        // Also upload to file share for contracts
-                        await _storageService.UploadToFileShareAsync(model.ProofOfPayment, "contracts", "payments");
+                        var fileName = await _api.UploadProofOfPaymentAsync(
+                            model.ProofOfPayment,
+                            model.OrderId,
+                            model.CustomerName
+                        );
 
                         TempData["Success"] = $"File uploaded successfully! File name: {fileName}";
-                        // Clear the model for a fresh form
                         return View(new FileUploadModel());
                     }
                     else
