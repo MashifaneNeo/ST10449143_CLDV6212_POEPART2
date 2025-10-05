@@ -1,47 +1,53 @@
-// Program.cs
 using ST10449143_CLDV6212_POEPART1.Services;
+using Microsoft.AspNetCore.Http.Features;
 using System.Globalization;
 
+var builder = WebApplication.CreateBuilder(args);
 
-namespace ST10449143_CLDV6212_POEPART1
+// MVC
+builder.Services.AddControllersWithViews();
+
+// Typed HttpClient for Azure Functions
+builder.Services.AddHttpClient("Functions", (sp, client) =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var baseUrl = cfg["Functions:BaseUrl"] ?? "http://localhost:7071";
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/api/");
+    client.Timeout = TimeSpan.FromSeconds(100);
+});
 
-            // Add services to the container.
-            builder.Services.AddControllersWithViews();
-            // Register Azure Storage service
-            builder.Services.AddScoped<IAzureStorageService, AzureStorageService>();
-            // Add Logging
-            builder.Services.AddLogging();   
+// Use the typed client (replaces IAzureStorageService)
+builder.Services.AddScoped<IFunctionsApi, FunctionsApiClient>();
 
-            var app = builder.Build();
+// Allow larger multipart uploads
+builder.Services.Configure<FormOptions>(o =>
+{
+    o.MultipartBodyLengthLimit = 50 * 1024 * 1024; // 50 MB
+});
 
-            // Set the culture for decimal handling (FIXES PRICE ISSUE)
-            var culture = new CultureInfo("en-US");
-            CultureInfo.DefaultThreadCurrentCulture = culture;
-            CultureInfo.DefaultThreadCurrentUICulture = culture;
+builder.Services.AddLogging();
 
-            // Configure the HTTP request pipeline.
-            if (!app.Environment.IsDevelopment())
-            {
-                app.UseExceptionHandler("/Home/Error");
-                app.UseHsts();
-            }
+var app = builder.Build();
 
-            app.UseHttpsRedirection();
-            app.UseStaticFiles();
-            app.UseRouting();
-            app.UseAuthorization();
+// Culture for decimal handling
+var culture = new CultureInfo("en-US");
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
-
-            app.Run();
-        }
-    }
+// Pipeline
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
 }
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.Run();
