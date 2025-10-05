@@ -1,14 +1,19 @@
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
-var builder = FunctionsApplication.CreateBuilder(args);
+var host = new HostBuilder()
+    .ConfigureAppConfiguration(cfg =>
+    {
+        cfg.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+        cfg.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true);
+        cfg.AddEnvironmentVariables();
+    })
+    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureServices((ctx, services) =>
+    {
+        // Add DI registrations here if needed
+    })
+    .Build();
 
-builder.ConfigureFunctionsWebApplication();
-
-builder.Services
-    .AddApplicationInsightsTelemetryWorkerService()
-    .ConfigureFunctionsApplicationInsights();
-
-builder.Build().Run();
+host.Run();
