@@ -40,7 +40,7 @@
                 @foreach (var order in Model.OrderByDescending(o => o.OrderDate))
                 {
                     <tr>
-                        <td><code>@order.OrderId.Substring(0, 8)...</code></td>
+                        <td><code>@order.Id.Substring(0, 8)...</code></td>
                         <td>@order.Username</td>
                         <td>@order.ProductName</td>
                         <td>@order.OrderDate.ToString("MMM dd, yyyy")</td>
@@ -53,14 +53,14 @@
                         </td>
                         <td>
                             <div class="btn-group" role="group">
-                                <a asp-action="Details" asp-route-id="@order.RowKey" class="btn btn-sm btn-outline-info" title="Details">
+                                <a asp-action="Details" asp-route-id="@order.Id" class="btn btn-sm btn-outline-info" title="Details">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a asp-action="Edit" asp-route-id="@order.RowKey" class="btn btn-sm btn-outline-primary" title="Edit">
+                                <a asp-action="Edit" asp-route-id="@order.Id" class="btn btn-sm btn-outline-primary" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>                                
 
-                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete('@order.RowKey', '@order.OrderId')" title="Delete">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete('@order.Id', '@order.Id')" title="Delete">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -113,13 +113,13 @@ else
 
 @section Scripts {
     <script>
-        function confirmDelete(orderRowKey, orderId) {
-            document.getElementById('orderId').textContent = orderId.substring(0, 8) + '...';
-            document.getElementById('deleteForm').action = '/Order/Delete/' + orderRowKey;
+        function confirmDelete(orderId, orderDisplayId) {
+            document.getElementById('orderId').textContent = orderDisplayId.substring(0, 8) + '...';
+            document.getElementById('deleteForm').action = '/Order/Delete/' + orderId;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
 
-        function updateOrderStatus(orderRowKey, newStatus) {
+        function updateOrderStatus(orderId, newStatus) {
             if (confirm(`Are you sure you want to change the status to "${newStatus}"?`)) {
                 fetch('/Order/UpdateOrderStatus', {
                     method: 'POST',
@@ -127,7 +127,7 @@ else
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        id: orderRowKey,
+                        id: orderId,
                         newStatus: newStatus
                     })
                 })

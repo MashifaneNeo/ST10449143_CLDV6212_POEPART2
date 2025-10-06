@@ -29,7 +29,7 @@
             <div class="col-md-8">
                 <div class="card-body">
                     <h3 class="card-title fw-bold">@Model.ProductName</h3>
-                    <p class="card-text text-muted mb-2"><strong>Product ID:</strong> @Model.ProductId</p>
+                    <p class="card-text text-muted mb-2"><strong>Product ID:</strong> @Model.Id</p>
                     <p class="card-text mb-3">@Model.Description</p>
                     <p class="card-text mb-2"><strong>Price:</strong> <span class="text-success">@Model.Price.ToString("C")</span></p>
                     <p class="card-text mb-2">
@@ -40,7 +40,7 @@
                     </p>
 
                     <div class="mt-4">
-                        <a asp-action="Edit" asp-route-id="@Model.RowKey" class="btn btn-primary me-2">
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary me-2">
                             <i class="fas fa-edit"></i> Edit
                         </a>
                         <a asp-action="Index" class="btn btn-secondary">

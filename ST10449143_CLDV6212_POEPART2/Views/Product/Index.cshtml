@@ -11,6 +11,21 @@
     </a>
 </div>
 
+<!-- Search Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-8">
+                <input type="text" name="searchString" class="form-control" placeholder="Search products by name or description..." value="@ViewBag.SearchString" />
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary me-2">Search</button>
+                <a asp-action="Index" class="btn btn-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="text-center mb-5 py-4 bg-light rounded shadow-sm">
     <h5 class="fw-semibold text-dark mb-2">
         <i class="fas fa-box-open text-success"></i> Explore Our Products
@@ -19,8 +34,6 @@
         Browse our latest collection of products and discover amazing deals tailored for you.
     </p>
 </div>
-
-
 
 @if (Model.Any())
 {
@@ -53,7 +66,7 @@
                                 </div>
                             }
                         </td>
-                        <td><code>@product.ProductId.Substring(0, 8)...</code></td>
+                        <td><code>@product.Id.Substring(0, 8)...</code></td>
                         <td>@product.ProductName</td>
                         <td>@(product.Description.Length > 50 ? product.Description.Substring(0, 50) + "..." : product.Description)</td>
                         <td>
@@ -61,8 +74,7 @@
                             @if (product.Price <= 0)
                             {
                                 <br />
-
-                                <small class="text-danger">⚠️ Price not set</small>
+                                <small class="text-danger">Price not set</small>
                             }
                         </td>
                         <td>
@@ -72,19 +84,18 @@
                         </td>
                         <td>
                             <div class="btn-group" role="group">
-                                <a asp-action="Details" asp-route-partitionKey="@product.PartitionKey" asp-route-rowKey="@product.RowKey" class="btn btn-sm btn-outline-info">
+                                <a asp-action="Details" asp-route-id="@product.Id" class="btn btn-sm btn-outline-info">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a asp-action="Edit" asp-route-partitionKey="@product.PartitionKey" asp-route-rowKey="@product.RowKey" class="btn btn-sm btn-outline-primary">
+                                <a asp-action="Edit" asp-route-id="@product.Id" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <button type="button" class="btn btn-sm btn-outline-danger"
-                                        onclick="confirmDelete('@product.PartitionKey', '@product.RowKey', '@product.ProductName')">
+                                        onclick="confirmDelete('@product.Id', '@product.ProductName')">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
                         </td>
-
                     </tr>
                 }
             </tbody>
@@ -113,8 +124,7 @@ else
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form id="deleteForm" method="post" style="display: inline;">
-                    <input type="hidden" name="partitionKey" id="partitionKey" />
-                    <input type="hidden" name="rowKey" id="rowKey" />
+                    <input type="hidden" name="id" id="productId" />
                     <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
             </div>
@@ -124,16 +134,10 @@ else
 
 @section Scripts {
     <script>
-        function confirmDelete(partitionKey, rowKey, productName) {
+        function confirmDelete(productId, productName) {
             document.getElementById('productName').textContent = productName;
-
-            // Fill hidden inputs
-            document.getElementById('partitionKey').value = partitionKey;
-            document.getElementById('rowKey').value = rowKey;
-
-            // Show modal
+            document.getElementById('productId').value = productId;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
     </script>
 }
-
