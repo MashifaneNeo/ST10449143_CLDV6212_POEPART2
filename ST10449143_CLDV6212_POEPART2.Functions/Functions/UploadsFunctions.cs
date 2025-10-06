@@ -28,11 +28,11 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
         {
             var contentType = req.Headers.TryGetValues("Content-Type", out var ct) ? ct.First() : "";
             if (!contentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase))
-                return HttpJson.Bad(req, "Expected multipart/form-data");
+                return await HttpJson.Bad(req, "Expected multipart/form-data");
 
             var form = await MultipartHelper.ParseAsync(req.Body, contentType);
             var file = form.Files.FirstOrDefault(f => f.FieldName == "ProofOfPayment");
-            if (file is null || file.Data.Length == 0) return HttpJson.Bad(req, "ProofOfPayment file is required");
+            if (file is null || file.Data.Length == 0) return await HttpJson.Bad(req, "ProofOfPayment file is required");
 
             var orderId = form.Text.GetValueOrDefault("OrderId");
             var customerName = form.Text.GetValueOrDefault("CustomerName");
@@ -56,7 +56,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             await fileClient.CreateAsync(ms.Length);
             await fileClient.UploadAsync(ms);
 
-            return HttpJson.Ok(req, new { fileName = blobName, blobUrl = blob.Uri.ToString() });
+            return await HttpJson.Ok(req, new { fileName = blobName, blobUrl = blob.Uri.ToString() });
         }
     }
 }

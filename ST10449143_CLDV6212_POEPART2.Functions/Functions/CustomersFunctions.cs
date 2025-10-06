@@ -6,7 +6,6 @@ using ST10449143_CLDV6212_POEPART2.Functions.Entities;
 using ST10449143_CLDV6212_POEPART2.Functions.Helpers;
 using ST10449143_CLDV6212_POEPART2.Functions.Models;
 
-
 namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
 {
     public class CustomersFunctions
@@ -31,7 +30,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             await foreach (var e in table.QueryAsync<CustomerEntity>(x => x.PartitionKey == "Customer"))
                 items.Add(Map.ToDto(e));
 
-            return HttpJson.Ok(req, items);
+            return await HttpJson.Ok(req, items);
         }
 
         [Function("Customers_Get")]
@@ -42,11 +41,11 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             try
             {
                 var e = await table.GetEntityAsync<CustomerEntity>("Customer", id);
-                return HttpJson.Ok(req, Map.ToDto(e.Value));
+                return await HttpJson.Ok(req, Map.ToDto(e.Value));
             }
             catch
             {
-                return HttpJson.NotFound(req, "Customer not found");
+                return await HttpJson.NotFound(req, "Customer not found");
             }
         }
 
@@ -58,7 +57,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
         {
             var input = await HttpJson.ReadAsync<CustomerCreateUpdate>(req);
             if (input is null || string.IsNullOrWhiteSpace(input.Name) || string.IsNullOrWhiteSpace(input.Email))
-                return HttpJson.Bad(req, "Name and Email are required");
+                return await HttpJson.Bad(req, "Name and Email are required");
 
             var table = new TableClient(_conn, _table);
             await table.CreateIfNotExistsAsync();
@@ -73,7 +72,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             };
             await table.AddEntityAsync(e);
 
-            return HttpJson.Created(req, Map.ToDto(e));
+            return await HttpJson.Created(req, Map.ToDto(e));
         }
 
         [Function("Customers_Update")]
@@ -81,7 +80,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "customers/{id}")] HttpRequestData req, string id)
         {
             var input = await HttpJson.ReadAsync<CustomerCreateUpdate>(req);
-            if (input is null) return HttpJson.Bad(req, "Invalid body");
+            if (input is null) return await HttpJson.Bad(req, "Invalid body");
 
             var table = new TableClient(_conn, _table);
             try
@@ -96,11 +95,11 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
                 e.ShippingAddress = input.ShippingAddress ?? e.ShippingAddress;
 
                 await table.UpdateEntityAsync(e, e.ETag, TableUpdateMode.Replace);
-                return HttpJson.Ok(req, Map.ToDto(e));
+                return await HttpJson.Ok(req, Map.ToDto(e));
             }
             catch
             {
-                return HttpJson.NotFound(req, "Customer not found");
+                return await HttpJson.NotFound(req, "Customer not found");
             }
         }
 

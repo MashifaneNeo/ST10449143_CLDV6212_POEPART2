@@ -42,7 +42,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
                 items.Add(Map.ToDto(e));
 
             var ordered = items.OrderByDescending(o => o.OrderDateUtc).ToList();
-            return HttpJson.Ok(req, ordered);
+            return await HttpJson.Ok(req, ordered);
         }
 
         [Function("Orders_Get")]
@@ -53,11 +53,11 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             try
             {
                 var e = await table.GetEntityAsync<OrderEntity>("Order", id);
-                return HttpJson.Ok(req, Map.ToDto(e.Value));
+                return await HttpJson.Ok(req, Map.ToDto(e.Value));
             }
             catch
             {
-                return HttpJson.NotFound(req, "Order not found");
+                return await HttpJson.NotFound(req, "Order not found");
             }
         }
 
@@ -69,7 +69,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
         {
             var input = await HttpJson.ReadAsync<OrderCreate>(req);
             if (input is null || string.IsNullOrWhiteSpace(input.CustomerId) || string.IsNullOrWhiteSpace(input.ProductId) || input.Quantity < 1)
-                return HttpJson.Bad(req, "CustomerId, ProductId, Quantity >= 1 required");
+                return await HttpJson.Bad(req, "CustomerId, ProductId, Quantity >= 1 required");
 
             var orders = new TableClient(_conn, _ordersTable);
             var products = new TableClient(_conn, _productsTable);
@@ -85,16 +85,16 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             {
                 product = (await products.GetEntityAsync<ProductEntity>("Product", input.ProductId)).Value;
             }
-            catch { return HttpJson.Bad(req, "Invalid ProductId"); }
+            catch { return await HttpJson.Bad(req, "Invalid ProductId"); }
 
             try
             {
                 customer = (await customers.GetEntityAsync<CustomerEntity>("Customer", input.CustomerId)).Value;
             }
-            catch { return HttpJson.Bad(req, "Invalid CustomerId"); }
+            catch { return await HttpJson.Bad(req, "Invalid CustomerId"); }
 
             if (product.StockAvailable < input.Quantity)
-                return HttpJson.Bad(req, $"Insufficient stock. Available: {product.StockAvailable}");
+                return await HttpJson.Bad(req, $"Insufficient stock. Available: {product.StockAvailable}");
 
             var order = new OrderEntity
             {
@@ -144,7 +144,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             };
             await queueStock.SendMessageAsync(JsonSerializer.Serialize(stockMsg));
 
-            return HttpJson.Created(req, Map.ToDto(order));
+            return await HttpJson.Created(req, Map.ToDto(order));
         }
 
         public record OrderStatusUpdate(string Status);
@@ -155,7 +155,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
         {
             var input = await HttpJson.ReadAsync<OrderStatusUpdate>(req);
             if (input is null || string.IsNullOrWhiteSpace(input.Status))
-                return HttpJson.Bad(req, "Status is required");
+                return await HttpJson.Bad(req, "Status is required");
 
             var orders = new TableClient(_conn, _ordersTable);
             try
@@ -180,11 +180,11 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
                 };
                 await queueOrder.SendMessageAsync(JsonSerializer.Serialize(statusMsg));
 
-                return HttpJson.Ok(req, Map.ToDto(e));
+                return await HttpJson.Ok(req, Map.ToDto(e));
             }
             catch
             {
-                return HttpJson.NotFound(req, "Order not found");
+                return await HttpJson.NotFound(req, "Order not found");
             }
         }
 

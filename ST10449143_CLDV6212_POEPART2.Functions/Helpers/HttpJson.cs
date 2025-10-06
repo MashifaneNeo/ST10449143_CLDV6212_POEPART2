@@ -15,17 +15,17 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Helpers
             return await JsonSerializer.DeserializeAsync<T>(s, _json);
         }
 
-        public static HttpResponseData Ok<T>(HttpRequestData req, T body)
-            => Write(req, HttpStatusCode.OK, body);
+        public static async Task<HttpResponseData> Ok<T>(HttpRequestData req, T body)
+            => await Write(req, HttpStatusCode.OK, body);
 
-        public static HttpResponseData Created<T>(HttpRequestData req, T body)
-            => Write(req, HttpStatusCode.Created, body);
+        public static async Task<HttpResponseData> Created<T>(HttpRequestData req, T body)
+            => await Write(req, HttpStatusCode.Created, body);
 
-        public static HttpResponseData Bad(HttpRequestData req, string message)
-            => Text(req, HttpStatusCode.BadRequest, message);
+        public static async Task<HttpResponseData> Bad(HttpRequestData req, string message)
+            => await Text(req, HttpStatusCode.BadRequest, message);
 
-        public static HttpResponseData NotFound(HttpRequestData req, string message = "Not Found")
-            => Text(req, HttpStatusCode.NotFound, message);
+        public static async Task<HttpResponseData> NotFound(HttpRequestData req, string message = "Not Found")
+            => await Text(req, HttpStatusCode.NotFound, message);
 
         public static HttpResponseData NoContent(HttpRequestData req)
         {
@@ -33,20 +33,20 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Helpers
             return r;
         }
 
-        public static HttpResponseData Text(HttpRequestData req, HttpStatusCode code, string message)
+        public static async Task<HttpResponseData> Text(HttpRequestData req, HttpStatusCode code, string message)
         {
             var r = req.CreateResponse(code);
             r.Headers.Add("Content-Type", "text/plain; charset=utf-8");
-            r.WriteString(message, Encoding.UTF8);
+            await r.WriteStringAsync(message, Encoding.UTF8);
             return r;
         }
 
-        private static HttpResponseData Write<T>(HttpRequestData req, HttpStatusCode code, T body)
+        private static async Task<HttpResponseData> Write<T>(HttpRequestData req, HttpStatusCode code, T body)
         {
             var r = req.CreateResponse(code);
             r.Headers.Add("Content-Type", "application/json; charset=utf-8");
             var json = JsonSerializer.Serialize(body, _json);
-            r.WriteString(json, Encoding.UTF8);
+            await r.WriteStringAsync(json, Encoding.UTF8);
             return r;
         }
     }

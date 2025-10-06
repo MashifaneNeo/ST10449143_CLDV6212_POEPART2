@@ -33,7 +33,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             await foreach (var e in table.QueryAsync<ProductEntity>(x => x.PartitionKey == "Product"))
                 items.Add(Map.ToDto(e));
 
-            return HttpJson.Ok(req, items);
+            return await HttpJson.Ok(req, items);
         }
 
         [Function("Products_Get")]
@@ -44,11 +44,11 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             try
             {
                 var e = await table.GetEntityAsync<ProductEntity>("Product", id);
-                return HttpJson.Ok(req, Map.ToDto(e.Value));
+                return await HttpJson.Ok(req, Map.ToDto(e.Value));
             }
             catch
             {
-                return HttpJson.NotFound(req, "Product not found");
+                return await HttpJson.NotFound(req, "Product not found");
             }
         }
 
@@ -98,7 +98,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             }
 
             if (string.IsNullOrWhiteSpace(name))
-                return HttpJson.Bad(req, "ProductName is required");
+                return await HttpJson.Bad(req, "ProductName is required");
 
             var e = new ProductEntity
             {
@@ -110,7 +110,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
             };
             await table.AddEntityAsync(e);
 
-            return HttpJson.Created(req, Map.ToDto(e));
+            return await HttpJson.Created(req, Map.ToDto(e));
         }
 
         [Function("Products_Update")]
@@ -156,11 +156,11 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Functions
                 }
 
                 await table.UpdateEntityAsync(e, e.ETag, TableUpdateMode.Replace);
-                return HttpJson.Ok(req, Map.ToDto(e));
+                return await HttpJson.Ok(req, Map.ToDto(e));
             }
             catch
             {
-                return HttpJson.NotFound(req, "Product not found");
+                return await HttpJson.NotFound(req, "Product not found");
             }
         }
 

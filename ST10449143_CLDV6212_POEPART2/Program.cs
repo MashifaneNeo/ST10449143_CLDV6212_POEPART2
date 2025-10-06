@@ -11,7 +11,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient("Functions", (sp, client) =>
 {
     var cfg = sp.GetRequiredService<IConfiguration>();
-    var baseUrl = cfg["Functions:BaseUrl"] ?? "http://localhost:7071";
+    var baseUrl = cfg["Functions:BaseUrl"] ?? "http://localhost:7260";
     client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/api/");
     client.Timeout = TimeSpan.FromSeconds(100);
 });
