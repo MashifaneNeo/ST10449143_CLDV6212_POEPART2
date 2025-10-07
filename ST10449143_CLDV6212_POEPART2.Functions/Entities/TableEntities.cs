@@ -43,6 +43,7 @@ namespace ST10449143_CLDV6212_POEPART2.Functions.Entities
         public string ProductName { get; set; } = "";
         public int Quantity { get; set; }
         public double UnitPrice { get; set; }
+        public double TotalAmount { get; set; }
         public DateTimeOffset OrderDateUtc { get; set; } = DateTimeOffset.UtcNow;
         public string Status { get; set; } = "Submitted";
     }
